@@ -17,7 +17,7 @@ class Video:
 
 		self.output_path = output_path
 		self.output_video_x = self.output_path + "/video{}".format(self.source_video[-1])
-		 #結果出力先ファイル　なければ作成
+		#結果出力先ファイル　なければ作成
 		if not os.path.exists(self.output_video_x):
 			print("ディレクトリ: {} が存在しません".format(self.output_video_x))
 
@@ -45,13 +45,13 @@ class Video:
 
 
 	def readParameter(self, p_path):
-		 #動画中の人物の数
+		#動画中の人物の数
 		with open(p_path + "/people_num.txt") as f:
-			self.people_num = int(f.readlines()[1])
+			self.people_num = int(f.readlines()[0])
 		f.close()
-		 #動作量の閾値
+		#動作量の閾値
 		with open(p_path + "/threshold.txt") as f:
-			self.TH = float(f.readlines()[1])
+			self.TH = float(f.readlines()[0])
 		f.close()
 
 	def readArea(self):
@@ -66,7 +66,7 @@ class Video:
 
 
 	#YOLOで取得した座標のcsvデータを読み込み
-	 #csvファイルは前処理の必要あり（余計な人物がいないこと、途中で人物のIDが入れ替わらないこと）
+	#csvファイルは前処理の必要あり（余計な人物がいないこと、途中で人物のIDが入れ替わらないこと）
 	def readPeopleCoordinate(self):
 		csv_file = glob.glob(self.source_video + "/*.csv") #拡張子がcsvのファイルのリストを取得
 		if not csv_file: #csvファイルがない、座標を読み込まないときの処理をここで分岐

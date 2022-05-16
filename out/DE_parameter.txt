@@ -1,0 +1,9 @@
+---DEパラメータ---
+世代数:generation = 100
+交叉率:Cr = 0.1
+---評価関数---
+n1 = -10
+D = 21
+--> 評価区間:section = -10~21
+項の数:evaluation_num = 3
+重み:weight = {'DISTANCE': 1.0, 'M_DEGREE': 1.0, 'SWITCH': 1.0}

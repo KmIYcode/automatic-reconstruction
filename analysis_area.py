@@ -28,40 +28,53 @@ class AnalysisArea:
 
 		self.people_range = [[None] * self.people_num for i in range(self.frame_count)] #全フレームでの人物毎の座標
 
+		self.output_path = output_path
+		self.output_video_x = self.output_path + "/video{}".format(self.source_video[-1])
+
+		#結果出力先ファイル　なければ作成
+		if not os.path.exists(self.output_video_x):
+			print("ディレクトリ:video{} を作成します".format(self.output_video_x))
+			os.makedirs(self.output_video_x)
+		
+		# 指定した座標からcsvファイルを作成
+		# このrectを外部から引数で与える
+		self.rect = [[106, 198, 246, 457],[406, 187, 560, 440],[625, 146, 805, 455]] # rect = []2次元list
+		self.createCoordinateCsv()
+
+		# 座標を読み込み
 		self.readPeopleCoordinate()
 
 		self.area = []
 		self.area_mean = []
 		self.area_max = []
 		self.area_sec = []
-
-		self.output_path = output_path
-		self.output_video_x = self.output_path + "/video{}".format(self.source_video[-1])
-
-		 #結果出力先ファイル　なければ作成
-		if not os.path.exists(self.output_video_x):
-			print("ディレクトリ:video{} を作成します".format(self.output_video_x))
-			os.makedirs(self.output_video_x)
-		
-		
 		
 
+	def createCoordinateCsv(self):
+		is_csv = os.path.isfile(self.source_video + "/coordinate.csv")
+		if is_csv:
+			os.remove(self.source_video + "/coordinate.csv")
+		with open(self.source_video + "/coordinate.csv", "a") as f:
+			writer = csv.writer(f)
+			for i in range(self.frame_count):
+				for j in range(len(self.rect)):
+					writer.writerow([i+1,j+1] + self.rect[j])
 
 	def readParameter(self, p_path):
-		 #動画中の人物の数
+		#動画中の人物の数
 		with open(p_path + "/people_num.txt") as f:
-			self.people_num = int(f.readlines()[1])
+			self.people_num = int(f.readlines()[0])
 		f.close()
 
 
-	 #YOLOで取得した座標のcsvデータを読み込み
-	 #csvファイルは前処理の必要あり（余計な人物がいないこと、途中で人物のIDが入れ替わらないこと）
+	#YOLOで取得した座標のcsvデータを読み込み
+	#csvファイルは前処理の必要あり（余計な人物がいないこと、途中で人物のIDが入れ替わらないこと）
 	def readPeopleCoordinate(self):
 		csv_file = glob.glob(self.source_video + "/*.csv") #拡張子がcsvのファイルのリストを取得
 		if not csv_file: #csvファイルがない、座標を読み込まないときの処理をここで分岐
 			print("!!csvファイルが存在しません!!")
 			#ここで事前に人物の座標を入力する
-			#self.people_range = []
+			# self.people_range = [[330, 463, 286, 539],[907, 446, 311, 523],[1320, 386, 432, 620]]
 		elif len(csv_file) > 1:
 			print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!") 
 			print("!!複数のcsvファイルが同時に存在しています!!") #複数のcsvファイルはエラー
@@ -85,7 +98,7 @@ class AnalysisArea:
 
 
 	"""面積から動作量検出"""
-	 #フレーム間差分
+	#フレーム間差分
 	def diffFrame(self, now_src, pre_src):
 		now_src = cv2.cvtColor(now_src, cv2.COLOR_BGR2GRAY)
 		pre_src = cv2.cvtColor(pre_src, cv2.COLOR_BGR2GRAY)
@@ -93,7 +106,7 @@ class AnalysisArea:
 
 		return diff_src
 
-	 #差分フレームを前処理
+	#差分フレームを前処理
 	def processingDiffFrame(self, diff_src):
 		diff_src = cv2.medianBlur(diff_src, 5) #平滑化フィルタ
 		th, diff_src = cv2.threshold(diff_src, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU) #閾値を自動で設定
@@ -102,7 +115,7 @@ class AnalysisArea:
 
 		return diff_src
 
-	 #白ピクセルをカウントし面積を求める
+	#白ピクセルをカウントし面積を求める
 	def calcArea(self, people_frame_src, f_num_src, DIFF):
 		if f_num_src == DIFF:
 			area_tmp_frame = []
@@ -123,14 +136,14 @@ class AnalysisArea:
 				area_tmp_frame.append(0)
 		self.area.append(area_tmp_frame)
 
-	 #差分用のpre_frameを1個ずらす
+	#差分用のpre_frameを1個ずらす
 	def setFrame(self):
 		self.pre_frame.popleft()
 		self.pre_frame.append(self.processing_frame)#確認
 	"""面積から動作量検出部終了"""
 
 
-	 #面積の移動平均を計算
+	#面積の移動平均を計算
 	def meanArea(self, DIFF):
 		_sum, num, _range = 0, 0, 10
 		for i in range(len(self.area)):
@@ -149,7 +162,7 @@ class AnalysisArea:
 		self.writeAreamean()
 
 
-	 #1秒間の面積を計算して保存
+	#1秒間の面積を計算して保存
 	def secArea(self):
 		#最大値
 		for i in range(self.people_num):
@@ -163,7 +176,6 @@ class AnalysisArea:
 					if j == len(self.area_mean):
 						break
 					area_sub[p] += self.area_mean[j][p]
-					print("p = {}, j = {}, area_sub[p] = {}".format(p,j,area_sub[p]))
 				if area_sub[p] > self.area_max[p]:
 					self.area_max[p] = area_sub[p]
 			self.area_sec.append(area_sub)

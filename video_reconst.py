@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import csv
 import os
+import math
+import sys
 from video import Video
 from DE import DE
 
@@ -20,12 +22,9 @@ class VideoReconstruct:
 		self.width = self.video[0].width
 		self.height = self.video[0].height
 
-		# if os.path.exists(self.source_video[0]):
-		# 	print("ディレクトリ:{} が存在します".format(self.video[0]))
-
 		self.frame_count_min = None
 
-		#DE
+		#DE or RH
 		self.people = None #演奏者の選択
 		self.camera = None #カメラの選択
 		self.selected_people = [] #過去のpeopleを記録
@@ -33,8 +32,11 @@ class VideoReconstruct:
 		self.count_people = [] #過去のpeopleの合計を記録
 		self.count_camera = [] #過去のcameraの合計を記録
 		self.Ev = [] #評価値 double型の一次元配列
+		self.each_Ev = [] #評価項目それぞれの評価値 double型の2次元配列
 		self.L = None #拡大率
-		self.evaluation_num = None
+		self.evaluation_num = 3
+		self.sampling_cycle = 1 #注目領域を決定する周期（s）指定がない場合の初期値は1
+
 
 		self.readParameter(source_parameter) #再構成に必要な情報を読み込み
 		self.initialization() #どの人物、どのカメラを使用したかの記録するためのデータを初期化
@@ -50,27 +52,31 @@ class VideoReconstruct:
 
 	def readParameter(self, p_path):
 		print("---VideoReconstruct : readParameter---")
-		 #動画中の人物の数
+		#動画中の人物の数
 		with open(p_path + "/people_num.txt") as f:
-			self.people_num = int(f.readlines()[1])
+			self.people_num = int(f.readlines()[0])
 		f.close()
 
-		 #人物を映し出す比率
+		#人物を映し出す比率
 		with open(p_path + "/ratio.txt") as f:
-			next(f)
 			for line in f:
 				self.ratio.append(int(line.strip("\n")))
 			print(self.ratio)
+		f.close()
+		if self.people_num+1 != len(self.ratio):
+			print("---人数と設定された比率の数が一致していません---")
+			sys.exit()
 
-		 #拡大率
+		#拡大率
 		with open(p_path + "/L.txt") as f:
-			self.L = int(f.readlines()[1])
+			self.L = int(f.readlines()[0])
 		f.close()
 
-		 #評価項目の数
-		with open(p_path + "/evaluation_num.txt") as f:
-			self.evaluation_num = int(f.readlines()[1])
-		f.close()
+		#RHで注目領域を決定する周期
+		with open(p_path + "/sampling_cycle.txt") as f:
+			self.sampling_cycle = int(f.readlines()[0])
+			f.close()
+		print("注目領域決定の周期 : {}".format(self.sampling_cycle))
 
 
 	def initialization(self):
@@ -101,8 +107,8 @@ class VideoReconstruct:
 	def reconstruct(self, t):
 		frameWrite = np.empty((self.height,self.width,3),dtype=np.uint8)
 
-		 #fps毎(1秒毎)に注目領域を決定
-		if t % self.fps == 0:
+		#fps毎(1秒毎)に注目領域を決定
+		if t % (self.fps*self.sampling_cycle) == 0:
 			self.runDE(t)
 
 		#注目領域の適用
@@ -147,11 +153,12 @@ class VideoReconstruct:
 		print("---runDE---")
 		de = DE(t, self.video, self.selected_people, self.selected_camera, self.count_people, self.count_camera, self.ratio)
 
-		result = de.newEF()
+		result, Ev_list = de.newEF()
 		self.Ev.append(result.fun)
+		self.each_Ev.append(Ev_list)
 		print(result)
 
-		 #人物とカメラに変更
+		#人物とカメラに変更
 		self.people = de.toPeople(result.x[0]) #選択した人物
 		self.camera = de.toCamera(result.x[0]) #選択したカメラ
 		self.savePeopleCamera()
@@ -183,6 +190,7 @@ class VideoReconstruct:
 
 	def writeEvaluationValue(self):
 		print("---VideoReconstruct : writeEvaluationValue---")
+		#評価値を書き出し
 		with open(self.output_path + "/evaluation_value.txt", mode='w') as f:
 			f.write("t")
 			for i in range(self.evaluation_num):
@@ -191,24 +199,44 @@ class VideoReconstruct:
 					f.write(", E\n")
 			for i in range(len(self.Ev)):
 				f.write("{}".format(i+1))
+				for j in range(self.evaluation_num):
+					f.write(", {}".format(self.each_Ev[i][j]))
 				f.write(", {}\n".format(self.Ev[i]))
 		f.close()
 
 	def writePeopleCamera(self):
 		print("---VideoReconstruct : writePeopleCamera---")
+		#選択された人物、及びカメラを書き出し
+		video_time = math.ceil(self.frame_count_min / self.fps) #動画の時間
 		with open(self.output_path + "/selected_people_camera.txt", mode='w') as f:
 			f.write("t, camera, people\n")
 			for i in range(len(self.selected_people)):
-				f.write("{}, {}, {}\n".format(i+1, self.selected_camera[i], self.selected_people[i]))
+				for j in range(self.sampling_cycle):
+					if (i*self.sampling_cycle+1+j) <= video_time: #260秒の動画を周期3でRHを実行した場合、最後に1足りず、本来存在しない261sが表示されてしまうので、それを無視するため
+						f.write("{}s, {}, {}\n".format(i*self.sampling_cycle+1+j, self.selected_camera[i], self.selected_people[i]))
 		f.close()
 
 	def writeVariousValue(self):
 		print("---VideoReconstruct : writeVariousValue---")
+		#再構成時の様々なデータを書き出し
 		with open(self.output_path + "/reconst_info.txt", mode='w') as f:
 			f.write("人数 = {}\n".format(self.people_num))
 			f.write("動画数 = {}\n".format(self.video_num))
 			f.write("指定比率 = {}\n".format(self.ratio))
 			# f.write("実行環境 = " + platform.system() + "\n")
+			f.write("\n")
+			f.write("---RHパラメータ---\n")
+			f.write("注目領域を決定する周期:Sampling cycle = {}\n".format(self.sampling_cycle))
+			f.write("---実行結果---\n")
+			actual_people_ratio = self.calc_actual_people_ratio() #選択された人物の比率
+			actual_camera_ratio = self.calc_actual_camera_ratio() #選択されたカメラの比率
+			switching_result = self.calc_viewpoint_switching() #切り替わりの回数(辞書型)
+			f.write("実際の比率(人物) = {}\n".format(actual_people_ratio))
+			f.write("実際の比率(カメラ) = {}\n".format(actual_camera_ratio))
+			f.write("--切り替わり回数--\n")
+			for i,item in enumerate(switching_result.items()):
+				f.write("{} : {}\n".format(item[0], str(item[1])))
+			f.close()
 
 	def writeDifferentialEvolutionValue(self, de):
 		print("---VideoReconstruct : writeDEValue---")
@@ -223,16 +251,52 @@ class VideoReconstruct:
 			f2.write("項の数:evaluation_num = {}\n".format(de.evaluation_num))
 			f2.write("重み:weight = {}\n".format(de.weight))
 
-	# def analysisResult(self):
-	# 	self.analysisRatio()
+	def calc_actual_people_ratio(self):
+		people_ratio_result = []
+		for i in range(len(self.ratio)):
+			people_ratio_result.append(self.selected_people.count(i) / len(self.selected_people))
+		return people_ratio_result
+
+	def calc_actual_camera_ratio(self):
+		camera_ratio_result = []
+		for i in range(self.video_num):
+			camera_ratio_result.append(self.selected_camera.count(i) / len(self.selected_camera))
+		return camera_ratio_result
+
+	def calc_viewpoint_switching(self):
+		switch_people = 0 #人物のみの切り替わり回数
+		switch_camera = 0 #カメラのみの切り替わり回数
+		switch_PandC = 0 #人物とカメラが同時に切り替わり回数
+		switch_PandnoC = 0 #カメラは切り替わってないが、人物は切り替わっている回数
+		switch_noPandC = 0 #人物は切り替わっていない、カメラは切り替わっている回数
+
+		#人物の切り替わり回数
+		for i in range(1, len(self.selected_people)):
+			if self.selected_people[i] != self.selected_people[i - 1]:
+				switch_people += 1
+		#カメラの切り替わり回数
+		for i in range(1, len(self.selected_camera)):
+			if self.selected_camera[i] != self.selected_camera[i - 1]:
+				switch_camera += 1
+		#人物とカメラが同時に切り替わる
+		for i in range(1, len(self.selected_people)):
+			if self.selected_people[i] != self.selected_people[i - 1] and self.selected_camera[i] != self.selected_camera[i - 1]:
+				switch_PandC += 1
+		#カメラは切り替わってないが、人物は切り替わっている
+		for i in range(1, len(self.selected_people)):
+			if self.selected_people[i] != self.selected_people[i - 1] and self.selected_camera[i] == self.selected_camera[i - 1]:
+				switch_PandnoC += 1
+		#人物は切り替わっていない、カメラは切り替わっている
+		for i in range(1, len(self.selected_people)):
+			if self.selected_people[i] == self.selected_people[i - 1] and self.selected_camera[i] != self.selected_camera[i - 1]:
+				switch_noPandC += 1
+		# min_interval = 0 #切り替わりのない最小区間
+		# max_interval = 0 #切り替わりのない最大区間
+		return {"人物の切り替わり回数":switch_people, "カメラの切り替わり回数":switch_camera, "人物とカメラ同時切り替わり回数":switch_PandC, \
+						"カメラ切り替わりなしの人物切り替わり回数":switch_PandnoC, "人物切り替わりなしのカメラ切り替わり回数":switch_noPandC}
 
 
-	# def analysisRatio(self):
-	# 	de_for_analysis_result = DE(t, self.video, self.selected_people, self.selected_camera, self.count_people, self.count_camera, self.ratio)
-
-
-
-	def saveVideo(self, fW, t, tri):
+	def saveVideo(self, fW, t):
 		print("---VideoReconstruct : saveVideo---")
 		s = len(fW)
 

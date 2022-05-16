@@ -3,50 +3,19 @@ from video_reconst import VideoReconstruct
 from video import Video
 import glob
 import time
-import requests
 import os
 
 
-source_path = "./source_fullvideo"
-parameter_path = source_path + "/parameter" #./sourceフォルダ内のparemeterフォルダへのパス
-output_path = "./outputs8"
+# source_path = "./source_fullvideo/"
+source_path = "./data/"
+# parameter_path = source_path + "/parameter" #./sourceフォルダ内のparemeterフォルダへのパス
+parameter_path = source_path + "/param" #./sourceフォルダ内のparemeterフォルダへのパス
+# output_path = "./output"
+output_path = "./out"
 
 print("source_path : {}".format(source_path))
 
-DIFF = None
-
-Flag_area = None
-Flag_coordinate = None
-
-TRIALS = None
-
-# LINEに通知する関数
-def line_notify(message):
-	line_notify_token = 'oODfnr9ZRYe1JfUnw0sY0Frxi2kb7ejzkM6XO0EDWiJ'
-	line_notify_api = 'https://notify-api.line.me/api/notify'
-	payload = {'message': message}
-	headers = {'Authorization': 'Bearer ' + line_notify_token} 
-	requests.post(line_notify_api, data=payload, headers=headers)
-
-def readParameter():
-	global DIFF,Flag_area,Flag_coordinate,TRIALS
-	
-	#DIFF
-	with open(parameter_path + "/DIFF.txt") as f:
-		DIFF = int(f.readlines()[2])
-	f.close()
-
-	#Flag_area Flag_coordinate
-	with open(parameter_path + "/Flag_area_coordinate.txt") as f:
-		data = f.readlines()
-		Flag_area = int(data[2].rstrip())
-		Flag_coordinate = int(data[4])
-	f.close()
-
-	#TRIALS
-	with open(parameter_path + "/TRIALS.txt") as f:
-		TRIALS = int(f.readlines()[2])
-	f.close()
+DIFF = 3 #差分フレーム
 
 
 def getVideoDirPath():#動画等保存されているフォルダのパスを取得
@@ -54,7 +23,6 @@ def getVideoDirPath():#動画等保存されているフォルダのパスを取
 	video_dir_path.sort()#フォルダネーム順にソート
 	print("ビデオ数: {}".format(len(video_dir_path)))
 	return video_dir_path
-
 
 
 def analysisArea(): #面積で動作量を求める
@@ -105,71 +73,53 @@ def analysisArea(): #面積で動作量を求める
 def videoReconstruct(): #動画像の再構成を行う
 	video_dir_path = getVideoDirPath()
 
-	for trial in range(1, TRIALS+1, 1):
-		#動画を読み込み
-		video = [Video(v_path,parameter_path,output_path) for v_path in video_dir_path]
+	#動画を読み込み
+	video = [Video(v_path,parameter_path,output_path) for v_path in video_dir_path]
 
-		#施行毎の結果を保存するためのディレクトリを作成
-		output_path_trial = output_path + "/trial{}".format(trial)
-		if not os.path.exists(output_path_trial):
-			print("ディレクトリ:trial{} を作成します".format(trial))
-			os.makedirs(output_path_trial)
+	Reconst = VideoReconstruct(video, parameter_path, output_path)
+	Reconst.readAnalysisAreaData()
+	
+	#動画像の書き出し準備
+	save_video_separate_frame = 300 #300フレームごとに保存
+	frame_count_min = Reconst.frame_count_min
+	frameWrite = []
 
-		Reconst = VideoReconstruct(video, parameter_path, output_path_trial)
-		Reconst.readAnalysisAreaData()
-		
-		#動画像の書き出し準備
-		save_video_separate_frame = 300 #300フレームごとに保存
-		frame_count_min = Reconst.frame_count_min
-		frameWrite = []
+	for t in range(frame_count_min):
+		Reconst.changeFrameReconst()
 
-		for t in range(frame_count_min):
-			Reconst.changeFrameReconst()
+		frameWrite.append(Reconst.reconstruct(t)) #再構成後のフレームを追加
 
-			frameWrite.append(Reconst.reconstruct(t)) #再構成後のフレームを追加
-
-			#動画を途中で保存
-			if len(frameWrite) % save_video_separate_frame == 0:
-				Reconst.saveVideo(frameWrite, t, trial)
-				frameWrite.clear()
-
-			#進捗確認
-			if t % 30 == 0:
-				print("Reconstruct : {}/{}".format(t, frame_count_min))
-		if len(frameWrite) != 0: #残りのフレームを保存
-			Reconst.saveVideo(frameWrite, save_video_separate_frame, trial)
+		#動画を途中で保存
+		if len(frameWrite) % save_video_separate_frame == 0:
+			Reconst.saveVideo(frameWrite, t)
 			frameWrite.clear()
 
-		Reconst.writeData()
-		del video, Reconst
+		#進捗確認
+		if t % 30 == 0:
+			print("Reconstruct : {}/{}".format(t, frame_count_min))
+	if len(frameWrite) != 0: #残りのフレームを保存
+		Reconst.saveVideo(frameWrite, save_video_separate_frame)
+		frameWrite.clear()
+
+	Reconst.writeData()
+	del video, Reconst
 
 
 
 
 def main():
 
-	try:
-		readParameter()
 
-		start = time.time()
+	start = time.time()
 
-		#面積で動作量を求める
-		# analysisArea()
+	#面積で動作量を求める
+	analysisArea()
 
-		#動画像の再構成
-		videoReconstruct()
+	#動画像の再構成
+	videoReconstruct()
 
-		elapsed_time = time.time() - start
-		print("実行時間 : {} ".format(elapsed_time) + "[sec]")
-
-	except Exception as e:
-		import traceback
-		traceback.print_exc()
-		print(e)
-		line_notify(e)
-	else:
-		line_notify("実行完了")
-	
+	elapsed_time = time.time() - start
+	print("実行時間 : {} ".format(elapsed_time) + "[sec]")
 
 
 if __name__ == '__main__':

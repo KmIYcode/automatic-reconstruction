@@ -25,9 +25,9 @@ class DE:
 		self.n1 = None
 		self.D = None
 		self.weight = None
-		self.evaluation_num = None
-		self.generation = None
-		self.Cr = None
+		self.evaluation_num = 3
+		self.generation = 100
+		self.Cr = 0.1
 
 		self.readPrameter(self.source_parameter)
 
@@ -54,38 +54,23 @@ class DE:
 
 
 	def readPrameter(self, p_path):
-		 #評価区間の始まりを読み込み（n1）
+		#評価区間の始まりを読み込み（n1）
 		with open(p_path + "/n1.txt") as f:
-			self.n1 = int(f.readlines()[1])
+			self.n1 = int(f.readlines()[0])
 		f.close()
 
-		 #求める変数の数
+		#求める変数の数
 		with open(p_path + "/D.txt") as f:
-			self.D = int(f.readlines()[1])
+			self.D = int(f.readlines()[0])
 		f.close()
 
-		 #重み係数の読み込み (辞書型)
+		#重み係数の読み込み (辞書型)
 		with open(p_path + "/weight.csv", "r") as f:
 			reader = csv.DictReader(f)
 			for row in reader:
 				self.weight = row
 			for key, val in self.weight.items():
 				self.weight[key] = float(val)
-
-		 #評価項目の数
-		with open(p_path + "/evaluation_num.txt") as f:
-			self.evaluation_num = int(f.readlines()[1])
-		f.close()
-
-		 #世代の数
-		with open(p_path + "/generation.txt") as f:
-			self.generation = int(f.readlines()[1])
-		f.close()
-
-		  #交叉率
-		with open(p_path + "/Cr.txt") as f:
-			self.Cr = float(f.readlines()[1])
-		f.close()
 
 
 	#理想の割合と距離の最大値を計算
@@ -96,7 +81,7 @@ class DE:
 		for i in range(len(self.ratio)):
 			self.ideal_ratio.append(self.ratio[i] / R)
 
-		 #距離の最大値
+		#距離の最大値
 		for i in range(len(self.ratio)):
 			tmp_euc = 0.0
 			for j in range(len(self.ratio)):
@@ -136,10 +121,10 @@ class DE:
 
 	def newEF(self):
 		result = differential_evolution(self.evaluation_function, self.bounds, maxiter=self.generation, recombination=self.Cr)
-		return result
+		return result, self.Ev
 
 
-	 #移す人物の理想の数と実際の数との距離
+	#移す人物の理想の数と実際の数との距離
 	def rateDist(self, x):
 		count = [] #映した回数
 		ideal = [] #理想の回数
@@ -212,14 +197,14 @@ class DE:
 			step = (self.t // self.fps) + current #現在の時刻
 			#全体表示と最初の部分とパンを除く、かつ、はみ出し防止
 			if who_people >= 0 and who_people < self.people_num and step < len(self.video[which_camera].area_sec):
-			 	#閾値処理
-			 	th = self.video[which_camera].area_th[who_people] #閾値
-			 	S = self.video[which_camera].area_sec[step][who_people] #動作量
-			 	subS = S -th
-			 	if subS > 0:
-			 		sumS += subS
+				#閾値処理
+				th = self.video[which_camera].area_th[who_people] #閾値
+				S = self.video[which_camera].area_sec[step][who_people] #動作量
+				subS = S -th
+				if subS > 0:
+					sumS += subS
 
-		 #0~1に正規化
+		#0~1に正規化
 		if sumS > 0.0:
 			sumS = self.normalize(sumS, 0.0, sumSmax)
 		return -sumS
