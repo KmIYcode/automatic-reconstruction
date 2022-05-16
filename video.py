@@ -93,9 +93,6 @@ class Video:
 			
 	
 
-
 	def setThreshold(self):
 		for i in range(self.people_num):
 			self.area_th.append(self.area_max[i] * self.TH)
-
-

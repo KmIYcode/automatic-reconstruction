@@ -50,7 +50,6 @@ class DE:
 
 		self.calcIdealratio()
 		self.calcAreaMax()
-		
 
 
 	def readPrameter(self, p_path):
@@ -237,17 +236,3 @@ class DE:
 		swi_min = 0.0
 		swi = self.normalize(swi, swi_min, swi_max)
 		return swi
-
-
-
-
-
-
-
-
-
-
-
-
-
-

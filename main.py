@@ -5,12 +5,8 @@ import glob
 import time
 import os
 
-
-# source_path = "./source_fullvideo/"
 source_path = "./data/"
-# parameter_path = source_path + "/parameter" #./sourceフォルダ内のparemeterフォルダへのパス
 parameter_path = source_path + "/param" #./sourceフォルダ内のparemeterフォルダへのパス
-# output_path = "./output"
 output_path = "./out"
 
 print("source_path : {}".format(source_path))

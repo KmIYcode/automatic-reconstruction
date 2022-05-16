@@ -38,7 +38,7 @@ class AnalysisArea:
 		
 		# 指定した座標からcsvファイルを作成
 		# このrectを外部から引数で与える
-		self.rect = [[106, 198, 246, 457],[406, 187, 560, 440],[625, 146, 805, 455]] # rect = []2次元list
+		self.rect = [[106, 198, 246, 457],[406, 187, 560, 440],[625, 146, 805, 455]]
 		self.createCoordinateCsv()
 
 		# 座標を読み込み
@@ -92,9 +92,6 @@ class AnalysisArea:
 					if self.people_range[i][j] != None:
 						self.people_range[i][j][2] = self.people_range[i][j][2] - self.people_range[i][j][0]
 						self.people_range[i][j][3] = self.people_range[i][j][3] - self.people_range[i][j][1]
-
-
-
 
 
 	"""面積から動作量検出"""
@@ -211,31 +208,3 @@ class AnalysisArea:
 					"w", newline='') as f:
 			writer = csv.writer(f)
 			writer.writerows(self.area)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -47,9 +47,6 @@ class VideoReconstruct:
 		self.wirter = cv2.VideoWriter(self.output_path + "/output.mp4", self.codec, self.fps, (self.width, self.height))
 
 
-
-
-
 	def readParameter(self, p_path):
 		print("---VideoReconstruct : readParameter---")
 		#動画中の人物の数
