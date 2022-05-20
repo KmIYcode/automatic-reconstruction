@@ -23,7 +23,8 @@ class AnalysisArea:
 		self.pre_frame = deque()
 
 		self.people_num = None
-		
+		self.rect = None
+
 		self.readParameter(source_parameter)
 
 		self.people_range = [[None] * self.people_num for i in range(self.frame_count)] #全フレームでの人物毎の座標
@@ -37,8 +38,6 @@ class AnalysisArea:
 			os.makedirs(self.output_video_x)
 		
 		# 指定した座標からcsvファイルを作成
-		# このrectを外部から引数で与える
-		self.rect = [[106, 198, 246, 457],[406, 187, 560, 440],[625, 146, 805, 455]]
 		self.createCoordinateCsv()
 
 		# 座標を読み込み
@@ -49,6 +48,15 @@ class AnalysisArea:
 		self.area_max = []
 		self.area_sec = []
 		
+	def readParameter(self, p_path):
+		#動画中の人物の数
+		with open(p_path + "/people_num.txt") as f:
+			self.people_num = int(f.readlines()[0])
+		#人物の位置
+		for line in open(p_path + "/rect.csv"), "r", encoding = "utf_8"):
+			line = eval(line)
+			self.rect.append(line)
+
 
 	def createCoordinateCsv(self):
 		is_csv = os.path.isfile(self.source_video + "/coordinate.csv")
@@ -59,13 +67,6 @@ class AnalysisArea:
 			for i in range(self.frame_count):
 				for j in range(len(self.rect)):
 					writer.writerow([i+1,j+1] + self.rect[j])
-
-	def readParameter(self, p_path):
-		#動画中の人物の数
-		with open(p_path + "/people_num.txt") as f:
-			self.people_num = int(f.readlines()[0])
-		f.close()
-
 
 	#YOLOで取得した座標のcsvデータを読み込み
 	#csvファイルは前処理の必要あり（余計な人物がいないこと、途中で人物のIDが入れ替わらないこと）
