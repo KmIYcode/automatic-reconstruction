@@ -23,7 +23,7 @@ class AnalysisArea:
 		self.pre_frame = deque()
 
 		self.people_num = None
-		self.rect = None
+		self.rect = []
 
 		self.readParameter(source_parameter)
 
