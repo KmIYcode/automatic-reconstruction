@@ -8,6 +8,8 @@ import os
 source_path = "./data/"
 parameter_path = source_path + "/param" #./sourceフォルダ内のparemeterフォルダへのパス
 output_path = "./out"
+if not os.path.exists(output_path):
+	os.makedirs(self.output_path)
 
 print("source_path : {}".format(source_path))
 

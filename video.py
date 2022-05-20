@@ -20,6 +20,7 @@ class Video:
 		#結果出力先ファイル　なければ作成
 		if not os.path.exists(self.output_video_x):
 			print("ディレクトリ: {} が存在しません".format(self.output_video_x))
+			os.makedirs(self.output_video_x)
 
 		#動画の情報
 		self.fps = round(self.movie.get(cv2.CAP_PROP_FPS))

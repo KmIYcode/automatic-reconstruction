@@ -55,7 +55,7 @@ class AnalysisArea:
 		#人物の位置
 		for line in open(p_path + "/rect.csv", "r", encoding = "utf_8"):
 			line = eval(line)
-			self.rect.append(line)
+			self.rect.append(list(line))
 
 
 	def createCoordinateCsv(self):
