@@ -53,7 +53,7 @@ class AnalysisArea:
 		with open(p_path + "/people_num.txt") as f:
 			self.people_num = int(f.readlines()[0])
 		#人物の位置
-		for line in open(p_path + "/rect.csv"), "r", encoding = "utf_8"):
+		for line in open(p_path + "/rect.csv", "r", encoding = "utf_8"):
 			line = eval(line)
 			self.rect.append(line)
 
