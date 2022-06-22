@@ -66,7 +66,7 @@ class VideoReconstruct:
 
 		#拡大率
 		with open(p_path + "/L.txt") as f:
-			self.L = int(f.readlines()[0])
+			self.L = float(f.readlines()[0])
 		f.close()
 
 		#RHで注目領域を決定する周期
@@ -124,7 +124,7 @@ class VideoReconstruct:
 		height_p = self.height // self.L
 
 		x_tri, y_tri = self.fixTri(x, y, width_p, height_p) #左上の座標に変換
-		return (x_tri, y_tri, width_p, height_p)
+		return (int(x_tri), int(y_tri), int(width_p), int(height_p))
 
 	def fixTri(self, x, y, w, h):
 		x_tri = x - w // 2

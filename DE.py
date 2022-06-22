@@ -26,7 +26,7 @@ class DE:
 		self.D = None
 		self.weight = None
 		self.evaluation_num = 3
-		self.generation = 100
+		self.generation = None
 		self.Cr = 0.1
 
 		self.readPrameter(self.source_parameter)
@@ -70,6 +70,10 @@ class DE:
 				self.weight = row
 			for key, val in self.weight.items():
 				self.weight[key] = float(val)
+		#世代の数
+		with open(p_path + "/generation.txt") as f:
+			self.generation = int(f.readlines()[0])
+		f.close()
 
 
 	#理想の割合と距離の最大値を計算
