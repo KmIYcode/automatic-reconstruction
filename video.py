@@ -6,9 +6,9 @@ import csv
 import os
 
 class Video:
-	def __init__(self, source_video, source_parameter, output_path):
+	def __init__(self, video_path, source_video, source_parameter, output_path):
 		self.source_video = source_video#ディレクトリ(video*)のパス
-		self.video_name = glob.glob(self.source_video + "/*.mp4")[0] #パスで指定されたディレクトリ内の動画のパス
+		self.video_name = video_path #指定された動画のパス
 		self.movie = cv2.VideoCapture(self.video_name)
 		if not self.movie.isOpened():
 			print("動画を読み込めていません。")
