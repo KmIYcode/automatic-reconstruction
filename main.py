@@ -30,9 +30,9 @@ def getVideoPath(video_dir_path):#動画のパスを読み込む
 
 def analysisArea(): #面積で動作量を求める
 	video_dir_path = getVideoDirPath()
-	video_path = getVideoPath(video_dir_path)
+	video_path = getVideoPath(video_dir_path[0])
 
-	anal = [AnalysisArea(video_path,v_dir_path,parameter_path,output_path) for v_path in video_dir_path]
+	anal = [AnalysisArea(video_path,v_dir_path,parameter_path,output_path) for v_dir_path in video_dir_path]
 
 	f_num = 0 #フレームナンバー
 	for i in range(len(video_dir_path)):
@@ -76,10 +76,10 @@ def analysisArea(): #面積で動作量を求める
 
 def videoReconstruct(): #動画像の再構成を行う
 	video_dir_path = getVideoDirPath()
-	video_path = getVideoPath(video_dir_path)
+	video_path = getVideoPath(video_dir_path[0])
 
 	#動画を読み込み
-	video = [Video(video_path,v_path,parameter_path,output_path) for v_path in video_dir_path]
+	video = [Video(video_path,v_dir_path,parameter_path,output_path) for v_dir_path in video_dir_path]
 
 	Reconst = VideoReconstruct(video, parameter_path, output_path)
 	Reconst.readAnalysisAreaData()
